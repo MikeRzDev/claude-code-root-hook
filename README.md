@@ -1,5 +1,13 @@
 # claude-code-root-hook
 
+> Run `sudo` from **Claude Code** even though its Bash tool has no terminal.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Platform: macOS | Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue)
+![Shell: sh / bash](https://img.shields.io/badge/shell-sh%20%2F%20bash-green)
+![Claude Code: PreToolUse hook](https://img.shields.io/badge/Claude%20Code-PreToolUse%20hook-8A2BE2)
+[![GitHub stars](https://img.shields.io/github/stars/MikeRzDev/claude-code-root-hook?style=social)](https://github.com/MikeRzDev/claude-code-root-hook/stargazers)
+
 Let **Claude Code** run `sudo` commands even though its shell has no terminal —
 by authenticating `sudo` through a graphical askpass helper and caching the
 password for a sliding ~1h window.
@@ -35,3 +43,11 @@ notes, and uninstall.
 This grants Claude Code the ability to obtain root via **your** password
 (cached in plaintext, user‑only, mode `0600`, for the cache window). That's the
 point — make sure it matches your intent. `./uninstall.sh` revokes it.
+
+## Keywords
+
+Claude Code · Anthropic Claude · sudo · `SUDO_ASKPASS` · askpass · PreToolUse
+hook · `updatedInput` · no tty / "a terminal is required to authenticate" ·
+sudo-rs · zenity / kdialog / ssh-askpass · macOS `osascript` password dialog ·
+AI agent · LLM agent · CLI · developer tools · automation · macOS · Linux ·
+Ubuntu.
