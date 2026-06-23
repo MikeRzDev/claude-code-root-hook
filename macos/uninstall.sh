@@ -33,8 +33,9 @@ rm -f "$PLIST"
 echo "==> Removing scripts"
 rm -f "$DEST_DIR/askpass.sh" "$DEST_DIR/sudo-check.sh" "$DEST_DIR/reaper.sh"
 
-echo "==> Clearing cached password (Keychain + file + stamp)"
+echo "==> Clearing cached password from the Keychain"
 security delete-generic-password -s "$SERVICE" -a "$ACCOUNT" >/dev/null 2>&1 || true
+# Defensive cleanup of state files left by older (pre-keychain-only) versions.
 RUNDIR="${TMPDIR:-/tmp}"; RUNDIR="${RUNDIR%/}"
 rm -f "$RUNDIR/claude-sudo.cache" "$RUNDIR/claude-sudo.stamp"
 
