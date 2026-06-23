@@ -40,9 +40,11 @@ notes, and uninstall.
 
 ## Security in one line
 
-This grants Claude Code the ability to obtain root via **your** password
-(cached in plaintext, user‑only, mode `0600`, for the cache window). That's the
-point — make sure it matches your intent. `./uninstall.sh` revokes it.
+This grants Claude Code the ability to obtain root via **your** password for the
+cache window. The secret is stored user‑only and time‑limited — on macOS in the
+**login Keychain** (encrypted, deleted after the idle window by a `launchd`
+reaper); on Linux in a `0600` tmpfs file. That's the point — make sure it
+matches your intent. `./uninstall.sh` revokes it.
 
 ## Keywords
 
