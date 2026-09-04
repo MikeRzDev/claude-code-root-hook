@@ -49,6 +49,19 @@ return text returned of dlg
 OSA
 }
 
+prompt_retry() {
+  osascript <<'OSA' 2>/dev/null
+set dlg to display dialog "Incorrect password. Enter your macOS password so Claude Code can run sudo:" with title "sudo password (Claude Code)" default answer "" with hidden answer with icon stop
+return text returned of dlg
+OSA
+}
+
+# --- verify a password against sudo WITHOUT caching a wrong one -------------
+# Password goes over stdin (-S), never argv. -k ignores any sudo timestamp so
+# the check is real; -p '' suppresses the prompt text. Nothing is executed
+# beyond /usr/bin/true.
+verify_pw() { printf '%s\n' "$1" | sudo -S -k -p '' /usr/bin/true >/dev/null 2>&1; }
+
 # --- serve from the Keychain if the idle window is still open ----------------
 meta=$(kc_meta)                       # "<lastuse-epoch> <ttl>" or empty
 case "$meta" in
@@ -60,16 +73,24 @@ case "$cttl" in *[!0-9]*|'') cttl=0 ;; esac
 
 if [ "$cttl" -gt 0 ] && [ "$ts" -gt 0 ] && [ "$(( $(now) - ts ))" -lt "$cttl" ]; then
   pw=$(kc_secret)
-  if [ -n "$pw" ]; then
+  if [ -n "$pw" ] && verify_pw "$pw"; then
     kc_store "$pw" "$(now) $cttl"     # slide the window (rewrite the timestamp)
     serve "$pw"; exit 0
   fi
+  # cached secret is wrong (mistyped earlier, or password changed): fall through
 fi
 
-# --- stale / missing / unverifiable: scrub, then prompt ---------------------
+# --- stale / missing / wrong: scrub, then prompt (verify before caching) -----
 kc_del
 pw=$(prompt_pw) || exit 1
 [ -z "$pw" ] && exit 1
+tries=1
+while ! verify_pw "$pw"; do
+  [ "$tries" -ge 3 ] && exit 1
+  tries=$((tries + 1))
+  pw=$(prompt_retry) || exit 1
+  [ -z "$pw" ] && exit 1
+done
 [ "$TTL" -gt 0 ] && kc_store "$pw" "$(now) $TTL"
 serve "$pw"
 exit 0

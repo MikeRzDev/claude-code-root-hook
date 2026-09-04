@@ -48,8 +48,9 @@ needs no tty). The pieces:
 ├─ sudo -A runs askpass.sh to get the password (no tty needed)
 │
 └─ askpass.sh:
-     • fresh cache?  -> prints cached password silently
-     • otherwise     -> pops a zenity/kdialog dialog, caches the password
+     • fresh cache && cached password still valid? -> prints it silently
+     • otherwise -> pops a zenity/kdialog dialog, verifies the entry against
+                    sudo (re-prompts up to 3x on a typo), then caches it
 ```
 
 Two scripts:
@@ -167,7 +168,7 @@ re‑prompts after `CLAUDE_SUDO_TTL` seconds of *no* sudo activity.
 | `sudo: a terminal is required to authenticate` | Hook not applied. Restart Claude Code so `settings.json` reloads; confirm the hook path in settings is correct and `sudo-check.sh` is executable. |
 | Command runs unmodified (no rewrite) | `updatedInput` must be nested under `hookSpecificOutput` (see above). Older Claude Code may lack `updatedInput` support — update Claude Code. |
 | No dialog appears / `no graphical askpass/display` deny message | No `DISPLAY`/`WAYLAND_DISPLAY`, or no zenity/kdialog/ssh-askpass installed. Install one (`sudo apt install zenity`). |
-| Wrong password cached after you changed it | `rm -f "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/claude-sudo.cache"` and retry. |
+| `Sorry, try again` ×3 on every `sudo` | The cached password is wrong (typo, or you changed it). The helper now detects this itself and re-prompts; on older versions clear it: `rm -f "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/claude-sudo.cache"` and retry. |
 | Hook seems to block its own diagnostics | The hook only acts on commands containing the word `sudo`; that's expected. |
 
 ## How it gets invoked (matcher note)
