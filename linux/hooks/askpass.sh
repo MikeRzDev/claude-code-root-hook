@@ -30,13 +30,23 @@ TITLE="sudo password (Claude Code)"
 
 serve() { printf '%s\n' "$1"; }
 
-# --- serve from cache if still fresh (and refresh the idle window) ----------
+# --- verify a password against sudo WITHOUT caching a wrong one -------------
+# Password goes over stdin (-S), never argv. -k ignores any sudo timestamp so
+# the check is real; -p '' suppresses the prompt text. Nothing is executed
+# beyond /bin/true. Works with both sudo and sudo-rs.
+verify_pw() { printf '%s\n' "$1" | sudo -A -S -k -p '' true >/dev/null 2>&1; }
+
+# --- serve from cache if still fresh AND still correct (refresh the window) --
 if [ "$TTL" -gt 0 ] && [ -f "$CACHE" ]; then
   age=$(( $(date +%s) - $(stat -c %Y "$CACHE" 2>/dev/null || echo 0) ))
   if [ "$age" -lt "$TTL" ]; then
-    touch "$CACHE" 2>/dev/null
-    serve "$(cat "$CACHE")"
-    exit 0
+    cached=$(cat "$CACHE")
+    if [ -n "$cached" ] && verify_pw "$cached"; then
+      touch "$CACHE" 2>/dev/null
+      serve "$cached"
+      exit 0
+    fi
+    # cached secret is wrong (mistyped earlier, or password changed): re-prompt
   fi
   rm -f "$CACHE"
 fi
@@ -56,6 +66,17 @@ ask_password() {
 
 pw=$(ask_password) || exit 1
 [ -z "$pw" ] && exit 1
+
+# Never cache (or hand sudo) a password that does not work: re-prompt up to
+# 3 times, then give up so sudo fails fast instead of burning its attempts.
+tries=1
+while ! verify_pw "$pw"; do
+  [ "$tries" -ge 3 ] && exit 1
+  tries=$((tries + 1))
+  TITLE="Incorrect password — sudo password (Claude Code)"
+  pw=$(ask_password) || exit 1
+  [ -z "$pw" ] && exit 1
+done
 
 # Cache for next time (unless caching is disabled).
 if [ "$TTL" -gt 0 ]; then

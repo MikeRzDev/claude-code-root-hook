@@ -38,8 +38,9 @@ tty. The pieces:
 ├─ sudo -A runs askpass.sh to get the password (no tty needed)
 │
 └─ askpass.sh:
-     • idle window open?  -> returns the cached password silently
-     • otherwise          -> pops a native osascript dialog, caches the result
+     • idle window open && cached password still valid? -> returns it silently
+     • otherwise -> pops a native osascript dialog, verifies the entry against
+                    sudo (re-prompts up to 3x on a typo), then caches it
 ```
 
 Scripts:
@@ -154,7 +155,7 @@ comment, so the reaper honors the same value the askpass used.
 | Command runs unmodified (no rewrite) | `updatedInput` must be nested under `hookSpecificOutput`. Update Claude Code if older versions lack it. |
 | No dialog appears / deny message | No logged‑in GUI session (e.g. plain `ssh`), or `osascript` unavailable. Run from a desktop session. |
 | Cached secret outlived the TTL | Confirm the agent is loaded: `launchctl print gui/$(id -u)/com.claude.sudo-reaper`. Reload with `./install.sh`. |
-| Wrong password cached after you changed it | `security delete-generic-password -s claude-sudo -a "$(id -un)"` and retry. |
+| `Sorry, try again` ×3 on every `sudo` | The cached password is wrong (typo, or you changed it). The helper now detects this itself and re-prompts; on older versions clear it: `security delete-generic-password -s claude-sudo -a "$(id -un)"` and retry. |
 
 ## Uninstall
 
