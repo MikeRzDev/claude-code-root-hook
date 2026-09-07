@@ -1,4 +1,6 @@
-# Codex support (Linux and macOS)
+# Codex — Linux and macOS
+
+Part of [harness-root-hook](../README.md). See [Claude Code support](../claude-code/README.md) for the other harness.
 
 Authenticate terminal-less sudo commands through a desktop password dialog.
 Install alongside either existing Claude Code integration; those files and

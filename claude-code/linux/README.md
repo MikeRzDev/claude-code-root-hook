@@ -1,4 +1,6 @@
-# claude-code-root-hook
+# Claude Code — Linux
+
+Part of [harness-root-hook](../../README.md). See [Codex support](../../codex/README.md) for the other harness.
 
 Let **Claude Code** run `sudo` commands on Linux — with a graphical password
 prompt and a time‑limited password cache — even though Claude's shell has no
@@ -18,8 +20,8 @@ Claude Code executes Bash tool commands in a shell with **no controlling tty**
 
 1. **sudo can't ask for a password.** With no tty, `sudo` errors with
    `sudo: a terminal is required to authenticate` (or hangs).
-2. **Caching credentials elsewhere doesn't help.** Modern Ubuntu (25.04+)
-   ships **`sudo-rs`** (a Rust reimplementation) as the default `sudo`. Its
+2. **Caching credentials elsewhere may not help.** On systems using
+   **`sudo-rs`** (a Rust reimplementation of `sudo`), its
    credential "tickets" are keyed per‑tty/per‑process, and:
    - it has **no `timestamp_type=global`** option (verified in `sudoers-rs(5)`),
      so you cannot make tickets span sessions;
@@ -87,8 +89,10 @@ is **not** honored — it must be nested under `hookSpecificOutput`.)
 
 ## Install
 
+From the repository root:
+
 ```sh
-./install.sh
+./claude-code/linux/install.sh
 ```
 
 This copies the scripts to `~/.claude/hooks/` and adds a PreToolUse hook to
@@ -97,6 +101,8 @@ idempotent. **Restart Claude Code** (or start a new session) so it reloads
 `settings.json`.
 
 ### Manual install (from scratch)
+
+From `claude-code/linux/`:
 
 1. Copy `hooks/askpass.sh` and `hooks/sudo-check.sh` to `~/.claude/hooks/` and
    `chmod +x` both.
@@ -156,7 +162,7 @@ re‑prompts after `CLAUDE_SUDO_TTL` seconds of *no* sudo activity.
   during the cache window. If that is unacceptable, set a short
   `CLAUDE_SUDO_TTL`, use `CLAUDE_SUDO_TTL=0`, or clear the cache when done.
 - This grants Claude Code the ability to obtain root via your password. That is
-  the point — make sure it matches your intent. To revoke, run `./uninstall.sh`.
+  the point — make sure it matches your intent. To revoke, run `./claude-code/linux/uninstall.sh` from the repository root.
 - This approach keeps password protection (no `NOPASSWD` sudoers changes
   required). A `NOPASSWD` rule is an alternative but removes the password gate
   entirely.
@@ -180,8 +186,10 @@ no output).
 
 ## Uninstall
 
+From the repository root:
+
 ```sh
-./uninstall.sh
+./claude-code/linux/uninstall.sh
 ```
 
 Removes the hook registration from `settings.json`, deletes the installed
@@ -190,7 +198,7 @@ scripts, and clears the cached password. Restart Claude Code afterwards.
 ## Files
 
 ```
-claude-code-root-hook/
+claude-code/linux/
 ├── README.md
 ├── install.sh          # copy scripts + register hook (idempotent)
 ├── uninstall.sh        # remove hook + scripts + cache

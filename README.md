@@ -1,59 +1,126 @@
-# claude-code-root-hook
+# harness-root-hook
 
-> Run `sudo` from **Claude Code** even though its Bash tool has no terminal.
-
-**Codex support:** see [`codex/`](codex/) for Linux/macOS graphical sudo
-authentication, a Codex SessionStart integration, installation, and tests.
-The original Claude Code integrations below remain available.
+Graphical sudo authentication for **Codex** and **Claude Code** on Linux and macOS.
+Run administrative commands from a harness shell without a controlling terminal,
+using a desktop password dialog through `sudo -A` and `SUDO_ASKPASS`.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![Platform: macOS | Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue)
-![Shell: sh / bash](https://img.shields.io/badge/shell-sh%20%2F%20bash-green)
-![Claude Code: PreToolUse hook](https://img.shields.io/badge/Claude%20Code-PreToolUse%20hook-8A2BE2)
-[![GitHub stars](https://img.shields.io/github/stars/MikeRzDev/claude-code-root-hook?style=social)](https://github.com/MikeRzDev/claude-code-root-hook/stargazers)
+![Platforms: Linux and macOS](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-blue)
+![Harnesses: Codex and Claude Code](https://img.shields.io/badge/harness-Codex%20%7C%20Claude%20Code-green)
+[![GitHub stars](https://img.shields.io/github/stars/MikeRzDev/harness-root-hook?style=social)](https://github.com/MikeRzDev/harness-root-hook/stargazers)
 
-Let **Claude Code** run `sudo` commands even though its shell has no terminal —
-by authenticating `sudo` through a graphical askpass helper and caching the
-password for a sliding ~1h window.
+## Choose your harness
 
-Claude Code runs Bash tool commands with **no controlling tty**, so plain
-`sudo` fails with `a terminal is required to authenticate`. A PreToolUse hook
-rewrites `sudo …` → `SUDO_ASKPASS=… sudo -A …` so sudo prompts via a GUI dialog
-(no tty needed), and a tiny cache means you're only asked once in a while.
+| Harness | Integration | Password storage | Setup |
+| --- | --- | --- | --- |
+| **Codex** | SessionStart hook introduces the explicit `codex-sudo` helper | No password cache maintained by this integration; sudo controls authentication timestamps | [Codex guide](codex/README.md) |
+| **Claude Code** | PreToolUse hook rewrites sudo commands to use askpass | Sliding idle cache, default one hour: Linux tmpfs file or macOS login Keychain | [Claude Code guide](claude-code/README.md) |
 
-## Pick your OS
+Both support Linux desktop dialogs (`zenity`, `kdialog`, or `ssh-askpass`) and
+native macOS dialogs (`osascript`). A logged-in graphical desktop is required.
+You can install both harness integrations on the same computer.
 
-| folder | platform | password dialog |
-|--------|----------|-----------------|
-| [`linux/`](linux/) | Linux / Ubuntu (incl. `sudo-rs`) | `zenity` / `kdialog` / `ssh-askpass` |
-| [`macos/`](macos/) | macOS | native `osascript` (AppleScript) dialog |
-
-Both install to the same place (`~/.claude/hooks/` + a PreToolUse hook in
-`~/.claude/settings.json`) — a given machine uses one or the other.
+## Quick start
 
 ```sh
-# Linux
-cd linux && ./install.sh
-
-# macOS
-cd macos && ./install.sh
+git clone https://github.com/MikeRzDev/harness-root-hook.git
+cd harness-root-hook
 ```
 
-See the per‑OS README for requirements, verification, configuration, security
-notes, and uninstall.
+Choose the command for your harness and operating system. Run installation from
+your terminal as your normal user.
 
-## Security in one line
+### Codex — Linux or macOS
 
-This grants Claude Code the ability to obtain root via **your** password for the
-cache window. The secret is stored user‑only and time‑limited — on macOS in the
-**login Keychain** (encrypted, deleted after the idle window by a `launchd`
-reaper); on Linux in a `0600` tmpfs file. That's the point — make sure it
-matches your intent. `./uninstall.sh` revokes it.
+Requires Python 3.9+, `/usr/bin/sudo`, and a supported desktop dialog.
 
-## Keywords
+```sh
+python3 codex/install.py
+```
 
-Claude Code · Anthropic Claude · sudo · `SUDO_ASKPASS` · askpass · PreToolUse
-hook · `updatedInput` · no tty / "a terminal is required to authenticate" ·
-sudo-rs · zenity / kdialog / ssh-askpass · macOS `osascript` password dialog ·
-AI agent · LLM agent · CLI · developer tools · automation · macOS · Linux ·
-Ubuntu.
+Open `/hooks` in Codex, review and trust the SessionStart hook, then start a new
+session. The hook tells Codex to use the installed `codex-sudo` helper for
+administrative commands. Normal Codex approval and sandbox rules still apply.
+For versions without SessionStart hooks, use the helper explicitly as described
+in the [Codex guide](codex/README.md).
+
+### Claude Code — Linux
+
+Requires `jq` and a supported desktop dialog.
+
+```sh
+./claude-code/linux/install.sh
+```
+
+### Claude Code — macOS
+
+Requires `jq`; the installer also registers a launchd task to expire cached
+Keychain credentials.
+
+```sh
+./claude-code/macos/install.sh
+```
+
+Restart Claude Code after installation. See the [Linux guide](claude-code/linux/README.md)
+or [macOS guide](claude-code/macos/README.md) for verification and configuration.
+
+## Repository layout
+
+```text
+harness-root-hook/
+├── codex/                 # Cross-platform helper, SessionStart hook, tests
+└── claude-code/
+    ├── linux/             # Claude Code Linux hooks and installer
+    └── macos/             # Claude Code macOS hooks, installer, Keychain reaper
+```
+
+Codex installs into `${CODEX_HOME:-~/.codex}/root-hook/` and registers its hook in
+`hooks.json` in that Codex home. Claude Code installs into `~/.claude/hooks/` and
+registers its hook in `~/.claude/settings.json`. Their configuration and helpers
+are independent.
+
+This repository was previously named `claude-code-root-hook`. Existing Claude
+Code installations keep working: installed paths have not changed. In a source
+checkout, the former `linux/` and `macos/` directories are now under `claude-code/`.
+
+## Authentication and password handling
+
+Enter your password only in the desktop dialog. Never run an askpass script
+directly or capture its output: stdout is reserved for sudo's password pipe.
+These integrations provide authentication and do not replace harness approvals.
+
+The Codex integration does not persist passwords. Claude Code's Linux helper
+stores a password in a user-only `0600` tmpfs file; the macOS helper uses the login
+Keychain and a periodic expiry task. See the platform guides for cache behavior,
+`CLAUDE_SUDO_TTL`, and security details.
+
+## Uninstall
+
+Run the command for the integration you installed:
+
+```sh
+# Codex (both operating systems)
+python3 codex/install.py --uninstall
+
+# Claude Code on Linux
+./claude-code/linux/uninstall.sh
+
+# Claude Code on macOS
+./claude-code/macos/uninstall.sh
+```
+
+Restart the relevant harness afterward.
+
+## Validation
+
+```sh
+python3 -m unittest discover -s codex/tests -v
+```
+
+Codex tests use temporary directories and mocked desktop dialogs. They do not
+request real passwords or execute root commands. Real Linux and macOS desktop
+authentication requires a manual smoke test; see each harness guide.
+
+## License
+
+[MIT](LICENSE).
