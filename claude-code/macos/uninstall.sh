@@ -30,8 +30,13 @@ uid="$(id -u)"
 launchctl bootout "gui/$uid/$LABEL" 2>/dev/null || launchctl unload "$PLIST" 2>/dev/null || true
 rm -f "$PLIST"
 
+if [ -f "$DEST_DIR/harness_cache.py" ]; then
+  python3 "$DEST_DIR/harness_cache.py" --harness claude-code clear
+  python3 "$DEST_DIR/harness_cache.py" --harness claude-code remove-reaper
+fi
+
 echo "==> Removing scripts"
-rm -f "$DEST_DIR/askpass.sh" "$DEST_DIR/sudo-check.sh" "$DEST_DIR/reaper.sh"
+rm -f "$DEST_DIR/harness_cache.py" "$DEST_DIR/askpass.sh" "$DEST_DIR/sudo-check.sh" "$DEST_DIR/reaper.sh"
 
 echo "==> Clearing cached password from the Keychain"
 security delete-generic-password -s "$SERVICE" -a "$ACCOUNT" >/dev/null 2>&1 || true

@@ -1,0 +1,6 @@
+{
+  "cache": {
+    "enabled": true,
+    "ttl_seconds": 7200
+  }
+}

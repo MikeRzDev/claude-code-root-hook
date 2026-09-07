@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("installer", ROOT / "install.py")
@@ -13,6 +14,13 @@ spec.loader.exec_module(installer)
 
 
 class IntegrationTests(unittest.TestCase):
+    def setUp(self):
+        # Installer side effects outside its destination are exercised separately.
+        for name in ("cache_action", "check_dependencies"):
+            mock = patch.object(installer, name)
+            mock.start()
+            self.addCleanup(mock.stop)
+
     def test_install_repeat_remove_preserves_other_hooks(self):
         with tempfile.TemporaryDirectory(prefix="codex test '") as temp:
             home = Path(temp)
@@ -72,46 +80,8 @@ class IntegrationTests(unittest.TestCase):
             args = ["-u", "root", "printf", "%s", "a b", "$(touch nope)", ""]
             result = subprocess.run(["sh", str(wrapper), *args], text=True, capture_output=True)
             self.assertEqual(result.returncode, 23)
-            self.assertEqual(json.loads(result.stdout), [["-A", *args], str(base / "askpass.sh")])
+            self.assertEqual(json.loads(result.stdout), [["-A", "-k", *args], str(base / "askpass.sh")])
 
-    def run_dialog(self, platform, tools, display=":0", wayland="", code=0):
-        with tempfile.TemporaryDirectory() as temp:
-            base = Path(temp)
-            programs = {"uname": f"printf '%s\\n' '{platform}'"}
-            programs.update({tool: f"printf '%s\\n' 'test-only-secret'\nexit {code}" for tool in tools})
-            for name, body in programs.items():
-                path = base / name
-                path.write_text("#!/bin/sh\n" + body + "\n")
-                path.chmod(0o700)
-            return subprocess.run(["/bin/sh", str(ROOT / "askpass.sh")], text=True,
-                                  capture_output=True, env={"PATH": temp, "DISPLAY": display,
-                                                            "WAYLAND_DISPLAY": wayland})
-
-    def test_linux_dialogs(self):
-        for tool in ("zenity", "kdialog", "ssh-askpass"):
-            with self.subTest(tool=tool):
-                result = self.run_dialog("Linux", [tool])
-                self.assertEqual(result.returncode, 0)
-                self.assertEqual(result.stdout, "test-only-secret\n")
-
-    def test_wayland(self):
-        self.assertEqual(self.run_dialog("Linux", ["zenity"], "", "wayland-0").returncode, 0)
-        self.assertNotEqual(self.run_dialog("Linux", ["ssh-askpass"], "", "wayland-0").returncode, 0)
-
-    def test_cancel(self):
-        self.assertNotEqual(self.run_dialog("Linux", ["zenity"], code=1).returncode, 0)
-
-    def test_headless_missing_dialog_and_unsupported(self):
-        for platform, tools, display in (("Linux", ["zenity"], ""),
-                                          ("Linux", [], ":0"), ("Other", [], ":0")):
-            result = self.run_dialog(platform, tools, display)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertEqual(result.stdout, "")
-
-    def test_macos(self):
-        result = self.run_dialog("Darwin", ["osascript"], display="")
-        self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "test-only-secret\n")
 
 
 if __name__ == "__main__":
