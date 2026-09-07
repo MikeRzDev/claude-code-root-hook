@@ -19,8 +19,13 @@ if [ -f "$SETTINGS" ] && command -v jq >/dev/null 2>&1; then
   ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
 fi
 
+if [ -f "$DEST_DIR/harness_cache.py" ]; then
+  python3 "$DEST_DIR/harness_cache.py" --harness claude-code clear
+  python3 "$DEST_DIR/harness_cache.py" --harness claude-code remove-reaper
+fi
+
 echo "==> Removing scripts"
-rm -f "$DEST_DIR/askpass.sh" "$DEST_DIR/sudo-check.sh"
+rm -f "$DEST_DIR/harness_cache.py" "$DEST_DIR/askpass.sh" "$DEST_DIR/sudo-check.sh"
 
 echo "==> Clearing cached password (if any)"
 rm -f "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/claude-sudo.cache"

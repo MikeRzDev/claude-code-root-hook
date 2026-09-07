@@ -7,8 +7,21 @@ from pathlib import Path
 import shlex
 import shutil
 import tempfile
+import subprocess
+import sys
 
-FILES = ("askpass.sh", "codex-sudo", "context.py")
+FILES = ("askpass.sh", "codex-sudo", "context.py", "harness_cache.py")
+
+
+def cache_action(destination, action):
+    helper = destination / "harness_cache.py"
+    if helper.exists():
+        subprocess.run([sys.executable, str(helper), "--harness", "codex", action], check=True)
+
+
+def check_dependencies():
+    helper = Path(__file__).resolve().parent.parent / "harness_cache.py"
+    subprocess.run([sys.executable, str(helper), "--harness", "codex", "check"], check=True)
 
 
 def write_config(path, config):
@@ -61,6 +74,8 @@ def configure(home, uninstall=False):
 
     if uninstall and not settings.exists() and not destination.exists():
         return
+    if not uninstall:
+        check_dependencies()
     home.mkdir(parents=True, exist_ok=True)
     if settings.exists():
         backup = settings.with_name("hooks.json.before-root-hook")
@@ -73,10 +88,15 @@ def configure(home, uninstall=False):
             target = destination / name
             if target.is_symlink():
                 raise ValueError(f"Refusing to overwrite symlink: {target}")
-            shutil.copyfile(source / name, target)
+            origin = source.parent / name if name == "harness_cache.py" else source / name
+            shutil.copyfile(origin, target)
             target.chmod(0o700)
+        cache_action(destination, "init-config")
+        cache_action(destination, "install-reaper")
     write_config(settings, config)
     if uninstall:
+        cache_action(destination, "clear")
+        cache_action(destination, "remove-reaper")
         for name in FILES:
             (destination / name).unlink(missing_ok=True)
         if destination.exists() and not any(destination.iterdir()):

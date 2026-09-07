@@ -16,7 +16,7 @@
 #   needs no tty. It uses Claude Code's PreToolUse `updatedInput` mechanism to
 #   replace the command before it runs:
 #
-#       sudo <args>   ->   export SUDO_ASKPASS=<helper>; sudo -A <args>
+#       sudo <args>   ->   export SUDO_ASKPASS=<helper>; sudo -A -k <args>
 #
 #   askpass.sh additionally caches the password so you aren't prompted every
 #   time (see that file).
@@ -52,7 +52,7 @@ fi
 # Insert -A after each sudo invocation at a command-segment start
 # (start of line, or after ; & | ( ), so prose/paths are left alone) and
 # export the askpass helper.
-NEWCMD=$(printf '%s' "$COMMAND" | sed -E 's/(^|[;&|(])([[:space:]]*)sudo([[:space:]]+)/\1\2sudo -A\3/g')
+NEWCMD=$(printf '%s' "$COMMAND" | sed -E 's/(^|[;&|(])([[:space:]]*)sudo([[:space:]]+)/\1\2sudo -A -k\3/g')
 NEWCMD="export SUDO_ASKPASS='$ASKPASS'; $NEWCMD"
 
 # Hand the rewritten command back to Claude Code via updatedInput.

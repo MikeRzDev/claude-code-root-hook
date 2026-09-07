@@ -12,8 +12,14 @@ HOOK_CMD='$HOME/.claude/hooks/sudo-check.sh'   # literal; Claude Code expands $H
 
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required (sudo apt install jq)"; exit 1; }
 
+command -v python3 >/dev/null 2>&1 || { echo "error: Python 3.9+ is required"; exit 1; }
+CACHE_HELPER="$SRC_DIR/../../../harness_cache.py"
+python3 "$CACHE_HELPER" --harness claude-code check
+python3 "$CACHE_HELPER" --harness claude-code init-config
+
 echo "==> Installing hook scripts to $DEST_DIR"
 mkdir -p "$DEST_DIR"
+install -m 0755 "$CACHE_HELPER" "$DEST_DIR/harness_cache.py"
 install -m 0755 "$SRC_DIR/askpass.sh"    "$DEST_DIR/askpass.sh"
 install -m 0755 "$SRC_DIR/sudo-check.sh" "$DEST_DIR/sudo-check.sh"
 
@@ -32,6 +38,9 @@ jq --arg cmd "$HOOK_CMD" '
   else .hooks.PreToolUse += [{matcher:"Bash", hooks:[{type:"command", command:$cmd}]}]
   end
 ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+
+# Remove the legacy plaintext cache; new passwords use Secret Service only.
+rm -f "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/claude-sudo.cache"
 
 echo "==> Done."
 echo

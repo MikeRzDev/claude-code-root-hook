@@ -4,11 +4,13 @@ Part of [harness-root-hook](../README.md). See [Claude Code support](../claude-c
 
 Authenticate terminal-less sudo commands through a desktop password dialog.
 Install alongside either existing Claude Code integration; those files and
-settings are independent.
+hook registrations are independent, with a shared JSON cache configuration.
 
 ## Install
 
-Requires Python 3.9+, `/usr/bin/sudo`, and a local desktop session. On Linux,
+Requires Python 3.9+, `/usr/bin/sudo`, and a local desktop session. Linux also
+requires `secret-tool` (`sudo apt install libsecret-tools` on Ubuntu) and an active
+Secret Service provider such as GNOME Keyring. On Linux,
 install `zenity`, `kdialog`, or `ssh-askpass`; macOS uses `osascript`.
 
 From the repository root, run in your terminal:
@@ -17,11 +19,13 @@ From the repository root, run in your terminal:
 python3 codex/install.py
 ```
 
-This installs three helpers in `$CODEX_HOME/root-hook` (default
+This installs the helpers and shared cache module in `$CODEX_HOME/root-hook` (default
 `~/.codex/root-hook`) and merges a SessionStart hook into `hooks.json`, preserving
 unrelated hooks. An existing file is backed up once as
 `hooks.json.before-root-hook`. Re-running installation does not duplicate hooks.
-Use `--codex-home /absolute/path` for another configuration directory.
+Use `--codex-home /absolute/path` for another Codex home. The installer also
+creates the shared cache JSON settings if missing and registers a Keychain cleanup
+task on macOS. See [password caching](../CACHE.md).
 
 In a Codex version supporting SessionStart hooks, open `/hooks`, review and trust
 the new hook, then start a new session. The hook tells Codex how to use the helper,
@@ -47,14 +51,20 @@ rewriting is not provided: the SessionStart hook supplies instructions for the
 model, so inspect the resulting command. No shell alias, regex replacement,
 permission allow hook, sudoers modification, or sandbox change is installed.
 
-This Codex implementation does not persist passwords or share the Claude cache.
-Sudo controls its own authentication timestamps; separate terminal-less commands
-may each prompt. Cancel aborts authentication. A wrong password is handled by
-sudo's normal retry policy. Ordinary shell quoting and argument boundaries are
-preserved; shell operators such as `&&` stay outside the helper.
+Successful authentication is cached for two hours by default in Linux Secret
+Service or macOS Keychain. Both harnesses use the same JSON settings, with separate
+credential entries. Repeated commands do not extend the deadline. No password is
+written to a plaintext file or passed in command-line arguments. See
+[password caching](../CACHE.md) for configuration, storage, and clearing entries.
+
+Cancel aborts authentication. Incorrect passwords are checked before caching and
+retried up to three times. Shell argument boundaries are preserved; operators such
+as `&&` stay outside the helper.
 
 ## Troubleshooting
 
+- **Credential-store error:** install `libsecret-tools` on Linux and ensure your
+  desktop Secret Service is available and unlocked. There is no file-cache fallback.
 - **No dialog:** use a logged-in desktop and ensure Codex inherits `DISPLAY` or
   `WAYLAND_DISPLAY` on Linux. SSH/headless/cloud sessions need a different
   authentication method.
@@ -72,7 +82,8 @@ python3 codex/install.py --uninstall
 python3 -m unittest discover -s codex/tests -v
 ```
 
-Uninstallation removes only this hook and its three helper files. It preserves
-unrelated settings and files, including the backup. Tests use temporary directories
-and mocked desktop dialogs; they never request a real password or run root commands.
+Uninstallation removes only this hook and its helper files, cached credential,
+and macOS cleanup task. It preserves unrelated settings and files, including the
+backup and shared JSON cache settings. Tests use temporary directories and mocked
+desktop dialogs and credential stores; they never request a real password or run root commands.
 Linux and macOS GUI authentication still need a manual smoke test on each platform.
