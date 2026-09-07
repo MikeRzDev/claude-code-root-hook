@@ -2,6 +2,10 @@
 
 > Run `sudo` from **Claude Code** even though its Bash tool has no terminal.
 
+**Codex support:** see [`codex/`](codex/) for Linux/macOS graphical sudo
+authentication, a Codex SessionStart integration, installation, and tests.
+The original Claude Code integrations below remain available.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform: macOS | Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue)
 ![Shell: sh / bash](https://img.shields.io/badge/shell-sh%20%2F%20bash-green)

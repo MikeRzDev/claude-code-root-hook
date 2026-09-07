@@ -1,0 +1,7 @@
+#!/bin/sh
+# Keep argument boundaries and sudo's exit status. No eval or password cache.
+set -eu
+helper_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SUDO_ASKPASS="$helper_dir/askpass.sh"
+export SUDO_ASKPASS
+exec /usr/bin/sudo -A "$@"
