@@ -1,4 +1,6 @@
-# claude-code-root-hook — macOS
+# Claude Code — macOS
+
+Part of [harness-root-hook](../../README.md). See [Codex support](../../codex/README.md) for the other harness.
 
 Let **Claude Code** run `sudo` commands on macOS — with a native password
 dialog and a time‑limited password cache — even though Claude's shell has no
@@ -98,8 +100,10 @@ launchctl print "gui/$(id -u)/com.claude.sudo-reaper" | grep -E 'state|run inter
 
 ## Install
 
+From the repository root:
+
 ```sh
-./install.sh
+./claude-code/macos/install.sh
 ```
 
 Copies the scripts to `~/.claude/hooks/`, adds a PreToolUse hook to
@@ -143,7 +147,7 @@ comment, so the reaper honors the same value the askpass used.
   written to disk as plaintext.
 - This grants Claude Code the ability to obtain root via **your** password
   during the cache window. That's the point — make sure it matches your intent.
-  `./uninstall.sh` revokes everything (hook, scripts, reaper, and the cached
+  `./claude-code/macos/uninstall.sh` (from the repository root) revokes everything (hook, scripts, reaper, and the cached
   secret).
 - Want it stricter? `CLAUDE_SUDO_TTL=0` (prompt every time) or a short TTL.
 
@@ -154,13 +158,15 @@ comment, so the reaper honors the same value the askpass used.
 | `sudo: a terminal is required to authenticate` | Hook not applied. Restart Claude Code; confirm the hook path in settings and that `sudo-check.sh` is executable. |
 | Command runs unmodified (no rewrite) | `updatedInput` must be nested under `hookSpecificOutput`. Update Claude Code if older versions lack it. |
 | No dialog appears / deny message | No logged‑in GUI session (e.g. plain `ssh`), or `osascript` unavailable. Run from a desktop session. |
-| Cached secret outlived the TTL | Confirm the agent is loaded: `launchctl print gui/$(id -u)/com.claude.sudo-reaper`. Reload with `./install.sh`. |
+| Cached secret outlived the TTL | Confirm the agent is loaded: `launchctl print gui/$(id -u)/com.claude.sudo-reaper`. Reload with `./claude-code/macos/install.sh` from the repository root. |
 | `Sorry, try again` ×3 on every `sudo` | The cached password is wrong (typo, or you changed it). The helper now detects this itself and re-prompts; on older versions clear it: `security delete-generic-password -s claude-sudo -a "$(id -un)"` and retry. |
 
 ## Uninstall
 
+From the repository root:
+
 ```sh
-./uninstall.sh
+./claude-code/macos/uninstall.sh
 ```
 
 Removes the hook registration, the scripts, and the reaper agent, then deletes
@@ -169,7 +175,7 @@ the cached password from the Keychain. Restart Claude Code afterwards.
 ## Files
 
 ```
-macos/
+claude-code/macos/
 ├── README.md
 ├── install.sh          # copy scripts + register hook + load reaper (idempotent)
 ├── uninstall.sh        # remove hook + scripts + reaper + cached secret
